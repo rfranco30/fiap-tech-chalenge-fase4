@@ -1,0 +1,26 @@
+# Tech Challenge IADT Fase 4 - Requisitos Técnicos
+# Baseado no documento IADT - Fase 4 - Tech challenge.pdf
+
+# Bibliotecas fundamentais (vistas nas aulas)
+opencv-python>=4.8.0       # Processamento de vídeo (Aula 01)
+numpy>=1.24.0              # Manipulação de arrays (todas as aulas)
+torch>=2.0.0               # PyTorch para YOLOv8
+ultralytics>=8.0.0         # YOLOv8 detection
+
+# Computer vision - OpenPose alternativa
+mediapipe>=0.10.0          # OpenPose-Light/MediaPipe (usado no plano)
+
+# Azure Cognitive Services (Aula 04 + Tech Challenge)
+azure-cognitivespeech>=1.1.0 # Azure Speech to Text
+azure-ai-textanalytics>=5.1.0 # Azure Text Analytics
+
+# Data analysis
+pandas>=2.0.0              # Séries temporais e dados
+scipy>=1.10.0              # Estatísticas e testes de hipóteses
+
+# Jupyter e I/O
+jupyter>=1.0.0
+ipywidgets>=8.0.0
+
+# Opcional: processamento de áudio
+librosa>=1.0.0
