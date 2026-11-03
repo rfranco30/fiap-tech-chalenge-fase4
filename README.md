@@ -116,16 +116,19 @@ deactivate
 ## 📦 Estrutura do Projeto
 
 ```
-/fase4_entrega/
-├── PLAN_Tech_Challenge_IADT_Fase4.md  (plano detalhado)
-├── notebooks/
-│   └── 01_analise_video.ipynb         (notebook unificado - 21 células)
+fiap-tech-chalenge-fase4/
+├── 01_analise_video.ipynb             (notebook único de análise multimodal)
 ├── dados/
-│   ├── physionet/                     (dataset opcional - sinais vitais)
-│   └── audioset/                      (dataset opcional - eventos sonoros)
+│   ├── sinais.csv                     (entrada real: série fc/spo2 por paciente)
+│   └── prescricoes.json               (entrada real: prescrições ao longo do tempo)
 ├── requirements.txt                   (bibliotecas Python)
+├── .env.example                       (modelo das chaves Azure -> copie para .env)
+├── .env                               (suas chaves — NÃO versionado)
+├── .gitignore
 ├── README.md                          (este arquivo)
-└── apresentacao_15min.md              (guia de apresentação)
+├── capturas/                          (saída: vídeo/áudio gravados — ignorado)
+├── modelos/                           (saída: modelo Vosk baixado — ignorado)
+└── logs/                              (saída: log de execução e retornos — ignorado)
 ```
 
 ## 🚀 Como Executar o Projeto
@@ -177,19 +180,39 @@ _azure_on = bool(AZURE_ON and _HAS_AZURE_LIBS and speech_key and text_key)
 # AZURE_ON vem de MODO; as demais condições evitam 401 quando falta pacote/chave.
 ```
 
-## 📊 Datasets Opcionais
+## 📊 Dados de entrada (pasta `dados/`)
 
-### PhysioNet (Sinais Vitais)
-- Acesse: https://physionet.org/
-- Dataset MIMIC-III ou similar para validar `detectar_anomalias_sinais_vitais`
-- Coloque os dados na pasta `dados/physionet/`
+A **detecção de anomalias** é orientada a dados reais: ela lê arquivos em
+`dados/` e, **só se não existirem**, usa uma série de **exemplo** (sempre
+rotulada como `EXEMPLO` no log/relatório — o relatório imprime `Fontes ->`).
 
-### AudioSet (Eventos Sonoros)
-- Acesse: https://research.google.com/audioset/
-- Para fine-tuning de detecção de alterações vocais
-- Coloque os dados na pasta `dados/audioset/`
+- **`dados/sinais.csv`** → série temporal de sinais vitais (colunas
+  `timestamp,fc,spo2`). Ex.:
+  ```csv
+  timestamp,fc,spo2
+  2026-11-01T08:00,72,98
+  ...
+  2026-11-01T11:00,132,86
+  ```
+  Alimentam `detectar_anomalias_sinais_vitais` (FC por 3σ; SpO2 < 95%).
+- **`dados/prescricoes.json`** → lista de prescrições ao longo do tempo:
+  ```json
+  [ {"Dipirona": "500mg"},
+    {"Dipirona": "1g", "Oxigenio": "2L/min"} ]
+  ```
+  Alimentam `detectar_anomalias_prescricoes` (novo medicamento, dosagem
+  alterada, possível interação).
 
-Caso os datasets não estejam disponíveis, o código utiliza dados sintéticos para demonstração.
+**Movimentação** (`detectar_anomalias_movimentacao`):
+- usa os **keypoints reais do vídeo** processado quando o vídeo captura
+  postura (fonte `VIDEO`);
+- sem vídeo/keypoints reais, gera uma **trajetória sintética variada**
+  (fonte `SINTETICO`) — por isso o alerta de movimento muda a cada execução.
+  Defina `SEMENTE` (var. de ambiente) para tornar o sintético **determinístico**.
+
+> Os datasets sugeridos no enunciado (**PhysioNet** e **AudioSet**) podem ser
+> usados para **gerar** o `dados/sinais.csv` (séries de sinais vitais) e áudios
+> de teste; o repositório já traz versões fictícias de exemplo.
 
 ## 🖥️ Apresentação de 15 Minutos
 
