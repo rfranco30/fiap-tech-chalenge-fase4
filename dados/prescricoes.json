@@ -1,5 +1,7 @@
 [
-  { "Dipirona": "500mg", "Soro Fisiologico": "1000ml" },
-  { "Dipirona": "500mg", "Soro Fisiologico": "1000ml" },
-  { "Dipirona": "1g", "Soro Fisiologico": "1000ml", "Oxigenio": "2L/min" }
+  { "Paracetamol": "750mg" },
+  { "Paracetamol": "750mg", "Oxigenio": "2L/min", "Soro Fisiologico": "1000ml" },
+  { "Paracetamol": "750mg", "Oxigenio": "2L/min", "Soro Fisiologico": "1000ml" },
+  { "Paracetamol": "750mg", "Oxigenio": "1L/min", "Soro Fisiologico": "1000ml" },
+  { "Paracetamol": "750mg", "Oxigenio": "1L/min", "Soro Fisiologico": "1000ml" }
 ]

@@ -185,34 +185,58 @@ _azure_on = bool(AZURE_ON and _HAS_AZURE_LIBS and speech_key and text_key)
 A **detecção de anomalias** é orientada a dados reais: ela lê arquivos em
 `dados/` e, **só se não existirem**, usa uma série de **exemplo** (sempre
 rotulada como `EXEMPLO` no log/relatório — o relatório imprime `Fontes ->`).
+Os exemplos no repositório representam um paciente que **esteve sintomático e
+está bem no fim** (últimas leituras normais → decisão “Monitoramento normal”).
 
-- **`dados/sinais.csv`** → série temporal de sinais vitais (colunas
-  `timestamp,fc,spo2`). Ex.:
+- **`dados/sinais.csv`** → série temporal de sinais vitais. Colunas:
+  `timestamp,fc,spo2` e, **opcionalmente**, `pa_sist` e `temp` (mais colunas
+  = mais parâmetros avaliados). As últimas linhas definem o estado atual; a
+  janela recente (média/mín/máx) aparece no `resumo`.
   ```csv
-  timestamp,fc,spo2
-  2026-11-01T08:00,72,98
+  timestamp,fc,spo2,pa_sist,temp
+  2026-11-01T08:00,112,90,150,38.9
   ...
-  2026-11-01T11:00,132,86
+  2026-11-01T15:30,76,99,116,36.8
   ```
-  Alimentam `detectar_anomalias_sinais_vitais` (FC por 3σ; SpO2 < 95%).
-- **`dados/prescricoes.json`** → lista de prescrições ao longo do tempo:
+  Critérios (último valor): FC 60–100 (alerta <50/>110), SpO2 ≥95,
+  PA sist 90–140, temp 35,5–38,0.
+- **`dados/prescricoes.json`** → **linha do tempo** de prescrições (lista de
+  `{medicamento: dosagem}`). A última é comparada com a anterior (novo/suspenso/
+  dosagem/interação) e a série completa é resumida (iniciados/suspensos).
+  Se as duas últimas forem iguais → `estavel` (sem alerta).
   ```json
-  [ {"Dipirona": "500mg"},
-    {"Dipirona": "1g", "Oxigenio": "2L/min"} ]
+  [ {"Paracetamol": "750mg"},
+    {"Paracetamol": "750mg", "Oxigenio": "2L/min", "Soro Fisiologico": "1000ml"},
+    {"Paracetamol": "750mg", "Oxigenio": "1L/min", "Soro Fisiologico": "1000ml"} ]
   ```
-  Alimentam `detectar_anomalias_prescricoes` (novo medicamento, dosagem
-  alterada, possível interação).
+- **`dados/consulta.txt`** (opcional) → transcrição simulada da fala para o
+  modo **offline sem gravação**. A detecção de alterações vocais é
+  **consciente de negação** (“nega dor”, “sem falta de ar”) e usa **fronteira de
+  palavra** (evita falso‑positivo p.ex. `dor` dentro de `dor**miu**`).
 
-**Movimentação** (`detectar_anomalias_movimentacao`):
-- usa os **keypoints reais do vídeo** processado quando o vídeo captura
-  postura (fonte `VIDEO`);
-- sem vídeo/keypoints reais, gera uma **trajetória sintética variada**
-  (fonte `SINTETICO`) — por isso o alerta de movimento muda a cada execução.
-  Defina `SEMENTE` (var. de ambiente) para tornar o sintético **determinístico**.
+**Movimentação** (`detectar_anomalias_movimentacao`): usa os **keypoints reais
+do vídeo** quando há captura (fonte `VIDEO`); sem vídeo, gera trajetória
+sintética (fonte `SINTETICO`). Por padrão `estavel` (caminhada suave, varia por
+semente mas sem alarme); use `MOVIMENTO_CENARIO=queda` para disparar o padrão
+de queda (movimento brusco + imobilidade).
+
+### Trocar de paciente / testar (variáveis de ambiente)
+| Variável | Efeito |
+|---|---|
+| `CAMINHO_SINAIS` | CSV de sinais vitais (padrão `dados/sinais.csv`) |
+| `CAMINHO_PRESCRICOES` | JSON de prescrições (padrão `dados/prescricoes.json`) |
+| `MOVIMENTO_CENARIO` | `estavel` (padrão) ou `queda` |
+| `SEMENTE` | torna o movimento sintético determinístico (ex.: `42`) |
+
+Ex. de execução sintomática (só com env, sem editar o repo):
+```bash
+printf 'timestamp,fc,spo2,pa_sist,temp\n...,130,87,162,39.8\n' > /tmp/ruim.csv
+CAMINHO_SINAIS=/tmp/ruim.csv MOVIMENTO_CENARIO=queda jupyter notebook
+```
 
 > Os datasets sugeridos no enunciado (**PhysioNet** e **AudioSet**) podem ser
-> usados para **gerar** o `dados/sinais.csv` (séries de sinais vitais) e áudios
-> de teste; o repositório já traz versões fictícias de exemplo.
+> usados para **gerar** `dados/sinais.csv`/áudios de teste; o repositório já traz
+> versões fictícias.
 
 ## 🖥️ Apresentação de 15 Minutos
 
