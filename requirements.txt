@@ -1,26 +1,37 @@
 # Tech Challenge IADT Fase 4 - Requisitos Técnicos
 # Baseado no documento IADT - Fase 4 - Tech challenge.pdf
+# Cada bloco abaixo corresponde aos imports usados em 01_analise_video.ipynb
+#
+# Instalação:
+#   python3 -m venv .venv && source .venv/bin/activate
+#   pip install --upgrade pip
+#   pip install -r requirements.txt
+# Python recomendado: 3.10 - 3.12 (MediaPipe/Vosk não possuem wheel para 3.13/3.14)
 
-# Bibliotecas fundamentais (vistas nas aulas)
-opencv-python>=4.8.0       # Processamento de vídeo (Aula 01)
-numpy>=1.24.0              # Manipulação de arrays (todas as aulas)
-torch>=2.0.0               # PyTorch para YOLOv8
-ultralytics>=8.0.0         # YOLOv8 detection
+# ---- Visão computacional (análise de vídeo) ----
+opencv-python>=4.8.0,<4.11  # cv2: leitura de vídeo/webcam, VideoWriter, cores
+numpy>=1.24.0,<2.0          # np: arrays/imagens e operações numéricas
+mediapipe>=0.10.9,<0.11     # mp: MediaPipe Pose (solutions.pose) para postura (API legacy)
+torch>=2.0.0                # torch: backend do YOLOv8 via torch.hub
+ultralytics>=8.0.0          # modelos YOLOv8 (detecção de objetos/áreas)
 
-# Computer vision - OpenPose alternativa
-mediapipe>=0.10.0          # OpenPose-Light/MediaPipe (usado no plano)
+# ---- Áudio: captura, STT local (offline) e Azure (online) ----
+sounddevice>=0.4.6          # captura de microfone ao vivo (gravar WAV 16k mono)
+vosk>=0.3.42,<0.4           # STT local/offline (baixa modelo pt-BR em modelos/vosk-pt)
+azure-cognitiveservices-speech>=1.36.0  # azure.cognitiveservices.speech: Azure Speech to Text
+azure-ai-textanalytics>=5.2.0           # azure.ai.textanalytics: sentimento + entidades
+azure-core>=1.30.0                       # azure.core.credentials (AzureKeyCredential)
+python-dotenv>=1.0.0                     # lê chaves do Azure a partir de um arquivo .env
 
-# Azure Cognitive Services (Aula 04 + Tech Challenge)
-azure-cognitivespeech>=1.1.0 # Azure Speech to Text
-azure-ai-textanalytics>=5.1.0 # Azure Text Analytics
+# ---- Detecção de anomalias / dados ----
+pandas>=2.0.0               # pd: séries temporais de sinais vitais
+scipy>=1.10.0               # scipy.stats: apoio estatístico (3 sigma)
 
-# Data analysis
-pandas>=2.0.0              # Séries temporais e dados
-scipy>=1.10.0              # Estatísticas e testes de hipóteses
-
-# Jupyter e I/O
+# ---- Jupyter / execução do notebook ----
 jupyter>=1.0.0
+notebook>=7.0.0
+ipykernel>=6.0.0
 ipywidgets>=8.0.0
 
-# Opcional: processamento de áudio
-librosa>=1.0.0
+# ---- Bibliotecas padrão usadas (não precisam de pip) ----
+# json, os, wave, datetime, urllib  -> fazem parte da stdlib do Python

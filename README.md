@@ -11,16 +11,30 @@ Este projeto consiste em um **notebook Jupyter unificado** (`01_analise_video.ip
 
 ## 📋 Pré-requisitos
 
-### 1. Conta Azure (necessário para análise de áudio)
-Para utilizar as funcionalidades de transcrição e análise de sentimento:
+### 1. Contas/recursos Azure (necessário para o modo `azure`)
 
-1. Acesse [Azure Portal](https://portal.azure.com/)
-2. Crie uma conta gratuita ou faça login
-3. Navegue até "Cognitive Services"
-4. Crie dois recursos:
-   - **Speech** - Para Speech to Text
-   - **Text Analytics** - Para análise de sentimento e entidades
-5. Anote as chaves e regiões (ex: `westus2`, `eastus`)
+O notebook usa **dois serviços Azure** para a análise de áudio:
+- **Azure AI Speech** → Speech to Text (`transcrever_audio`).
+- **Azure AI Language** → Text Analytics, sentimento + entidades (`analisar_texto_azure`).
+
+> Por que criar **individual** e não "multi-service"? O recurso **multi-service**
+> normalmente **não oferece o tier F0 (Free)** e tem limite de 1 por região. Os
+> recursos **individuais** oferecem **F0**, ideal para a demonstração.
+> (F0 tem cota de minutos/chamadas — suficiente para o pitch.)
+
+**Como criar (portal.azure.com):**
+1. Faça login (conta gratuita disponível) e vá em **Create a resource**.
+2. **Speech:** busque **"Azure AI Speech"** → **Create**:
+   - *Name*, **Pricing tier = `F0 (Free)`**, **Region** (ex.: `westus2`), *Resource group* → **Review + create**.
+   - Depois: **Keys and Endpoint** → copie **KEY 1** e a **Region**.
+3. **Text Analytics:** busque **"Azure AI Language"** → **Create**:
+   - *Name*, **Pricing tier = `F0 (Free)`**, **Region**, *Resource group* → **Create**.
+   - Depois: **Keys and Endpoint** → copie **KEY 1**, a **Region** e o **Endpoint**
+     (`https://<nome-do-recurso>.cognitiveservices.azure.com/`).
+   - ⚠️ Recursos **novos** do Language **não** aceitam o endpoint regional legado
+     (`https://<região>.api.cognitive.microsoft.com/`); usando o legado você recebe
+     **HTTP 401**. Por isso o notebook aceita `AZURE_TEXT_ANALYTICS_ENDPOINT`.
+4. Guarde **chave + região (Speech)** e **chave + região + endpoint (Language)**.
 
 ### 2. Bibliotecas Python
 
@@ -42,22 +56,37 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. Variáveis de Ambiente
+### 3. Variáveis de Ambiente (recomendado: arquivo `.env`)
 
-Configure as chaves Azure como variáveis de ambiente:
+O notebook carrega automaticamente um `.env` via **python-dotenv** (`load_dotenv()`).
+Copie o exemplo e preencha — é o método mais confiável, pois o kernel do Jupyter
+nem sempre herda os `export` do terminal (comum no macOS):
 
 ```bash
-# No Linux/Mac
-export AZURE_SPEECH_KEY=sua_chave_de_speech
-export AZURE_SPEECH_REGION=sua_regiao_speech (ex: westus2)
-export AZURE_TEXT_ANALYTICS_KEY=sua_chave_de_text_analytics
-export AZURE_TEXT_ANALYTICS_REGION=sua_regiao_text_analytics (ex: westus2)
+cp .env.example .env
+# edite o .env com suas chaves/regions/endpoint
+```
 
-# No Windows
-set AZURE_SPEECH_KEY=sua_chave_de_speech
-set AZURE_SPEECH_REGION=westus2
-set AZURE_TEXT_ANALYTICS_KEY=sua_chave_de_text_analytics
-set AZURE_TEXT_ANALYTICS_REGION=westus2
+Conteúdo do `.env`:
+```
+AZURE_SPEECH_KEY=<chave do Azure AI Speech>
+AZURE_SPEECH_REGION=westus2
+
+AZURE_TEXT_ANALYTICS_KEY=<chave do Azure AI Language>
+AZURE_TEXT_ANALYTICS_REGION=westus2
+AZURE_TEXT_ANALYTICS_ENDPOINT=https://<nome-do-recurso-language>.cognitiveservices.azure.com/
+```
+> `AZURE_TEXT_ANALYTICS_ENDPOINT` deve ser preenchido para recursos **Azure AI
+> Language** (individuais). Deixe vazio **apenas** se usar multi-service legado.
+
+Alternativa (sem `.env`), exportando antes de abrir o Jupyter:
+```bash
+export AZURE_SPEECH_KEY=...
+export AZURE_SPEECH_REGION=westus2
+export AZURE_TEXT_ANALYTICS_KEY=...
+export AZURE_TEXT_ANALYTICS_REGION=westus2
+export AZURE_TEXT_ANALYTICS_ENDPOINT=https://<nome>.cognitiveservices.azure.com/
+jupyter notebook            # precisa ser aberto DESTE mesmo terminal
 ```
 
 ## 🐍 Ambiente Virtual Python
@@ -133,16 +162,19 @@ O notebook foi estruturado para ser executado sequencialmente:
 
 ### 3. Modo Offline (sem chaves Azure)
 
-Se você não tiver chaves Azure, o notebook funcionará em modo limitado:
+Se você não tiver chaves Azure (ou `.env` vazio), o notebook funciona em modo
+limitado, escolhido no `input()` de execução (`MODO`):
 
-- As células de áudio retornarão valores padrão/padrão neutro
-- Objetos de vídeo usarão simulações em vez de detecção real
-- As funções de anomalia funcionarão normalmente com dados de entrada
+- **Áudio:** se `MODO=offline`, a transcrição de um arquivo real usa o **Vosk
+  (pt-BR)** local; sem arquivo real usa uma transcrição simulada. Sem STT, o
+  sentimento cai em `neutro` (heurística local).
+- **Vídeo:** YOLO/MediaPipe rodam localmente; sem arquivo, usa frames simulados.
+- **Anomalias:** funcionam normalmente com dados de entrada.
 
 ```python
-# Exemplo de como o código lida com chaves ausentes:
-speech_key = os.getenv('AZURE_SPEECH_KEY', 'SUA_CHAVE_AQUI')
-# Se AZURE_SPEECH_KEY for 'SUA_CHAVE_AQUI', o modo offline é ativado automaticamente
+# Como o código decide ligar o Azure (célula da Seção 2):
+_azure_on = bool(AZURE_ON and _HAS_AZURE_LIBS and speech_key and text_key)
+# AZURE_ON vem de MODO; as demais condições evitam 401 quando falta pacote/chave.
 ```
 
 ## 📊 Datasets Opcionais
@@ -192,10 +224,23 @@ pip install ultralytics>=8.0.0
 - Para demonstração, o notebook inclui simulações offline
 - Considere rodar em uma máquina com GPU para melhor performance
 
-### Erro no Azure (chaves inválidas)
-- Verifique se as variáveis de ambiente estão corretas
-- Certifique-se de que os recursos Azure foram criados
-- Use o tier gratuito (free tier) para testes iniciais
+### Erro no Azure (401 / 403 / chaves inválidas)
+- **`HTTP 401 "invalid subscription key or wrong API endpoint"`**: na maioria das
+  vezes é **endpoint** — recursos novos de **Azure AI Language** não aceitam o
+  endpoint regional legado. Preencha `AZURE_TEXT_ANALYTICS_ENDPOINT` no `.env` com
+  o **endpoint próprio** do recurso (`https://<nome>.cognitiveservices.azure.com/`).
+- **`HTTP 403 Forbidden`**: quase sempre é **endpoint de outro produto**. Ex. real:
+  copiar o endpoint de um **Azure AI SEARCH** (`https://<nome>.search.windows.net`)
+  no lugar do Text Analytics → a chave não autoriza ali e retorna 403. O **endpoint
+  correto** é do recurso **Azure AI Language**: `https://<nome>.cognitiveservices.azure.com/`
+  (ou `...services.ai.azure.com`). O notebook já **avisa** na célula da Seção 2 quando
+  o endpoint não parece de Text Analytics. Se o endpoint estiver certo e ainda der 403,
+  cheque o **Networking** do recurso (firewall "All networks"/IP liberado).
+- Confirme que **não trocou** a chave do Speech com a do Language (são recursos distintos).
+- Veja o **diagnóstico impresso** na célula da Seção 2: ele mostra libs, chaves,
+  regiões e o **endpoint em uso** (`.env` ou legado) + avisos de endpoint errado.
+- Garanta **região = local do recurso** e que o `.env` foi carregado (`load_dotenv()`).
+- Use o tier **F0 (Free)** nos recursos individuais para testes.
 
 ### Notebook não executa todas as células
 - Execute as células na ordem numerada (01 a 21)

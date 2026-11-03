@@ -1,0 +1,15 @@
+# Segredos / ambiente
+.env
+
+# Artefatos de execucao (download/pesos, gravacoes e logs)
+modelos/
+capturas/
+logs/
+*.pt
+*.zip
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
